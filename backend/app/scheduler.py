@@ -16,7 +16,7 @@ from app.services.fetch_cloudflare import fetch_cloudflare_radar
 from app.services.fetch_greynoise import fetch_greynoise_for_ips
 from app.services.geo import GeoLocator
 from app.services.normalizer import normalize_candidates
-from app.services.scorer import HeuristicScorer
+from app.services.scorer import ConfidenceScorer
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ class AttackPoller:
         settings: Settings,
         repository: EventRepository,
         geo_locator: GeoLocator,
-        scorer: HeuristicScorer,
+        scorer: ConfidenceScorer,
         broadcast: BroadcastFn | None = None,
     ) -> None:
         self.settings = settings
@@ -117,4 +117,3 @@ def build_scheduler(poller: AttackPoller, settings: Settings) -> AsyncIOSchedule
         next_run_time=datetime.now(timezone.utc),
     )
     return scheduler
-

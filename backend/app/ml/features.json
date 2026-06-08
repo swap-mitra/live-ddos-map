@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "feature_names": [
+    "source_confidence",
+    "abuse_confidence_score",
+    "greynoise_malicious",
+    "greynoise_suspicious",
+    "greynoise_benign",
+    "greynoise_noise",
+    "greynoise_riot",
+    "source_count",
+    "cloudflare_ddos_trend",
+    "cloudflare_latest_value_log",
+    "has_ip",
+    "has_asn",
+    "has_country",
+    "type_volumetric",
+    "type_amplification",
+    "type_application",
+    "type_scanner",
+    "source_abuseipdb",
+    "source_greynoise",
+    "source_cloudflare_radar",
+    "event_age_minutes"
+  ],
+  "features": [
+    {
+      "name": "source_confidence",
+      "description": "Confidence reported or inferred directly from the source adapter."
+    },
+    {
+      "name": "abuse_confidence_score",
+      "description": "AbuseIPDB confidence normalized from 0-100 to 0-1."
+    },
+    {
+      "name": "greynoise_malicious",
+      "description": "1 when GreyNoise classifies the IP as malicious."
+    },
+    {
+      "name": "greynoise_suspicious",
+      "description": "1 when GreyNoise classifies the IP as suspicious."
+    },
+    {
+      "name": "greynoise_benign",
+      "description": "1 when GreyNoise classifies the IP as benign."
+    },
+    {
+      "name": "greynoise_noise",
+      "description": "1 when GreyNoise marks the IP as internet background noise."
+    },
+    {
+      "name": "greynoise_riot",
+      "description": "1 when GreyNoise marks the IP as RIOT/common business service."
+    },
+    {
+      "name": "source_count",
+      "description": "Number of independent sources reporting the same candidate."
+    },
+    {
+      "name": "cloudflare_ddos_trend",
+      "description": "1 when Cloudflare Radar indicates a current DDoS trend."
+    },
+    {
+      "name": "cloudflare_latest_value_log",
+      "description": "Log-scaled latest Cloudflare Radar trend bucket."
+    },
+    {
+      "name": "has_ip",
+      "description": "1 when the candidate has a concrete IP address."
+    },
+    {
+      "name": "has_asn",
+      "description": "1 when the candidate includes ASN metadata."
+    },
+    {
+      "name": "has_country",
+      "description": "1 when the candidate includes country metadata."
+    },
+    {
+      "name": "type_volumetric",
+      "description": "One-hot flag for volumetric attack hint."
+    },
+    {
+      "name": "type_amplification",
+      "description": "One-hot flag for amplification attack hint."
+    },
+    {
+      "name": "type_application",
+      "description": "One-hot flag for application-layer attack hint."
+    },
+    {
+      "name": "type_scanner",
+      "description": "One-hot flag for scanner/botnet reconnaissance hint."
+    },
+    {
+      "name": "source_abuseipdb",
+      "description": "One-hot flag for AbuseIPDB candidates."
+    },
+    {
+      "name": "source_greynoise",
+      "description": "One-hot flag for GreyNoise candidates."
+    },
+    {
+      "name": "source_cloudflare_radar",
+      "description": "One-hot flag for Cloudflare Radar candidates."
+    },
+    {
+      "name": "event_age_minutes",
+      "description": "Candidate age in minutes, capped at one day."
+    }
+  ]
+}

@@ -383,6 +383,11 @@ Initial feature set:
 - Source age/freshness in minutes.
 - Attack type hint.
 
+The Phase 2 implementation keeps the exact ordered feature contract in
+`backend/app/ml/features.json` and mirrors it in `backend/app/services/features.py`.
+Any agent changing feature extraction must update both and keep the artifact
+sync test passing.
+
 ### Model
 
 Use `sklearn.ensemble.GradientBoostingClassifier` as the preferred baseline. Logistic regression is acceptable if training data is sparse and performance is easier to explain.
@@ -392,6 +397,11 @@ Artifacts:
 - `model.joblib`: serialized trained model.
 - `features.json`: ordered feature names and preprocessing details.
 - `metrics.json`: training/validation metrics.
+
+The first committed model may be a deterministic synthetic-seed baseline created
+by `backend/scripts/train_model.py`. Treat it as a development artifact and
+replace it with real labeled examples from `backend/scripts/collect_training_data.py`
+before presenting the score as production-quality.
 
 ### Fallback Heuristic
 

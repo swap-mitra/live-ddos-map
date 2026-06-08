@@ -11,7 +11,7 @@ from app.db import EventRepository
 from app.scheduler import AttackPoller, build_scheduler
 from app.schemas import HealthResponse, SnapshotResponse, event_to_api
 from app.services.geo import GeoLocator
-from app.services.scorer import HeuristicScorer
+from app.services.scorer import build_scorer
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -24,7 +24,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await repository.initialize()
 
         geo_locator = GeoLocator(settings.maxmind_db_path)
-        scorer = HeuristicScorer()
+        scorer = build_scorer(settings)
         poller = AttackPoller(
             settings=settings,
             repository=repository,
@@ -90,4 +90,3 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 app = create_app()
-

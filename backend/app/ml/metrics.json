@@ -1,0 +1,12 @@
+{
+  "model": "GradientBoostingClassifier",
+  "training_status": "synthetic seed baseline",
+  "training_examples": 12,
+  "validation_examples": 6,
+  "validation_accuracy": 1.0,
+  "feature_spec_version": 1,
+  "notes": [
+    "This is a deterministic baseline for local development.",
+    "Replace with labels collected from real source responses before production use."
+  ]
+}
