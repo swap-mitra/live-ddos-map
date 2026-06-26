@@ -7,7 +7,7 @@ from typing import Any
 
 from fastapi import WebSocket
 
-from app.schemas import AttackEvent, StoredEvent
+from app.schemas import StoredEvent
 
 
 logger = logging.getLogger(__name__)

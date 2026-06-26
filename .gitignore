@@ -8,11 +8,23 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+*.mmdb
 
 backend/.env
+backend/.env.local
 backend/data/*
 !backend/data/.gitkeep
 backend/raw_data/
+backend/app/ml/*.mmdb
 
 frontend/.next/
 frontend/node_modules/
+frontend/.env.local
+frontend/out/
+
+.DS_Store
+*.log
+.coverage
+htmlcov/
+dist/
+build/

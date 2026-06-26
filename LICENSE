@@ -1,0 +1,47 @@
+MIT License
+
+Copyright (c) 2026 Live DDoS Map Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Third-Party Data Acknowledgments
+
+This project uses the following third-party data sources and services:
+
+### MaxMind GeoLite2 Database
+This product includes GeoLite2 data created by MaxMind, available from
+https://www.maxmind.com
+
+The GeoLite2 databases are distributed under the Creative Commons
+Attribution-ShareAlike 4.0 International License.
+
+Users of this software must:
+- Acknowledge MaxMind in their use of the GeoLite2 data
+- Download the GeoLite2 database separately (not included in this repository)
+- Comply with MaxMind's license terms
+
+### Threat Intelligence Sources
+- **Cloudflare Radar**: Public API usage subject to Cloudflare's terms
+- **AbuseIPDB**: API usage subject to AbuseIPDB's terms and rate limits
+- **GreyNoise**: API usage subject to GreyNoise's terms and rate limits
+
+These data sources are accessed via their respective public APIs and are not
+redistributed in this repository.
