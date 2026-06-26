@@ -72,16 +72,17 @@ class AttackPoller:
     async def _fetch_candidates(self) -> list[CandidateEvent]:
         timeout = httpx.Timeout(self.settings.source_timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            cloudflare_task = _safe_fetch("cloudflare_radar", fetch_cloudflare_radar(client))
-            abuse_task = _safe_fetch(
-                "abuseipdb",
-                fetch_abuseipdb_blacklist(
-                    client,
-                    api_key=self.settings.abuseipdb_key,
-                    limit=self.settings.abuseipdb_blacklist_limit,
+            cloudflare_events, abuse_events = await asyncio.gather(
+                _safe_fetch("cloudflare_radar", fetch_cloudflare_radar(client)),
+                _safe_fetch(
+                    "abuseipdb",
+                    fetch_abuseipdb_blacklist(
+                        client,
+                        api_key=self.settings.abuseipdb_key,
+                        limit=self.settings.abuseipdb_blacklist_limit,
+                    ),
                 ),
             )
-            cloudflare_events, abuse_events = await asyncio.gather(cloudflare_task, abuse_task)
 
             abuse_ips = [event.ip for event in abuse_events if event.ip]
             greynoise_events = await _safe_fetch(
