@@ -3,15 +3,19 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings, get_settings
+from app.connection_manager import ConnectionManager
 from app.db import EventRepository
 from app.scheduler import AttackPoller, build_scheduler
 from app.schemas import HealthResponse, SnapshotResponse, event_to_api
 from app.services.geo import GeoLocator
 from app.services.scorer import build_scorer
+
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -25,11 +29,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         geo_locator = GeoLocator(settings.maxmind_db_path)
         scorer = build_scorer(settings)
+        connection_manager = ConnectionManager(
+            target_lat=settings.target_lat,
+            target_lng=settings.target_lng,
+        )
+        
         poller = AttackPoller(
             settings=settings,
             repository=repository,
             geo_locator=geo_locator,
             scorer=scorer,
+            broadcast=connection_manager.broadcast_events,
         )
 
         scheduler = None
@@ -43,6 +53,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.scorer = scorer
         app.state.poller = poller
         app.state.scheduler = scheduler
+        app.state.connection_manager = connection_manager
 
         try:
             yield
@@ -85,6 +96,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 for event in recent_events
             ]
         )
+
+    @app.websocket("/ws/attacks")
+    async def websocket_attacks(websocket: WebSocket) -> None:
+        connection_manager: ConnectionManager = websocket.app.state.connection_manager
+        repository: EventRepository = websocket.app.state.repository
+        
+        origin = websocket.headers.get("origin")
+        if origin and origin not in settings.allowed_origins:
+            logger.warning("Rejected WebSocket connection from unauthorized origin: %s", origin)
+            await websocket.close(code=1008)
+            return
+        
+        await connection_manager.connect(websocket)
+        
+        try:
+            recent_events = await repository.list_recent_events(limit=200)
+            snapshot_payload = {
+                "kind": "snapshot",
+                "events": [
+                    event_to_api(
+                        event,
+                        target_lat=settings.target_lat,
+                        target_lng=settings.target_lng,
+                    )
+                    for event in recent_events
+                ],
+            }
+            await connection_manager.send_personal_message(snapshot_payload, websocket)
+            
+            while True:
+                await websocket.receive_text()
+        except WebSocketDisconnect:
+            connection_manager.disconnect(websocket)
+        except Exception as exc:
+            logger.warning("WebSocket error: %s", exc)
+            connection_manager.disconnect(websocket)
 
     return app
 
