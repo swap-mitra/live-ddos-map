@@ -36,12 +36,20 @@ class Settings(BaseSettings):
     poll_interval_seconds: int = Field(default=60, ge=10, alias="POLL_INTERVAL_SECONDS")
     event_ttl_hours: int = Field(default=24, ge=1, alias="EVENT_TTL_HOURS")
     min_event_score: float = Field(default=0.5, ge=0.0, le=1.0, alias="MIN_EVENT_SCORE")
-    model_path: Path = Field(default=BACKEND_DIR / "app" / "ml" / "model.joblib", alias="MODEL_PATH")
+    model_path: Path = Field(
+        default=BACKEND_DIR / "app" / "ml" / "model.joblib", alias="MODEL_PATH"
+    )
     enable_heuristic_scorer: bool = Field(default=True, alias="ENABLE_HEURISTIC_SCORER")
     enable_scheduler: bool = Field(default=True, alias="ENABLE_SCHEDULER")
-    source_timeout_seconds: float = Field(default=10.0, gt=0.0, alias="SOURCE_TIMEOUT_SECONDS")
-    abuseipdb_blacklist_limit: int = Field(default=50, ge=1, le=10000, alias="ABUSEIPDB_BLACKLIST_LIMIT")
-    greynoise_lookup_limit: int = Field(default=25, ge=0, le=1000, alias="GREYNOISE_LOOKUP_LIMIT")
+    source_timeout_seconds: float = Field(
+        default=10.0, gt=0.0, alias="SOURCE_TIMEOUT_SECONDS"
+    )
+    abuseipdb_blacklist_limit: int = Field(
+        default=50, ge=1, le=10000, alias="ABUSEIPDB_BLACKLIST_LIMIT"
+    )
+    greynoise_lookup_limit: int = Field(
+        default=25, ge=0, le=1000, alias="GREYNOISE_LOOKUP_LIMIT"
+    )
     target_lat: float = Field(default=37.7749, ge=-90.0, le=90.0, alias="TARGET_LAT")
     target_lng: float = Field(default=-122.4194, ge=-180.0, le=180.0, alias="TARGET_LNG")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
