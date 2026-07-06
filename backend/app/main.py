@@ -27,7 +27,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         repository = EventRepository(settings.db_path)
         await repository.initialize()
 
-        geo_locator = GeoLocator(settings.maxmind_db_path)
+        geo_locator = GeoLocator(
+            settings.maxmind_db_path,
+            account_id=settings.maxmind_account_id,
+            license_key=settings.maxmind_license_key,
+        )
         scorer = build_scorer(settings)
         connection_manager = ConnectionManager(
             target_lat=settings.target_lat,
@@ -60,7 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         finally:
             if scheduler:
                 scheduler.shutdown(wait=False)
-            geo_locator.close()
+            await geo_locator.close()
 
     app = FastAPI(
         title="Live DDoS Map Backend",

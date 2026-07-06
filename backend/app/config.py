@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     service_name: str = "live-ddos-map-backend"
     db_path: Path = Field(default=BACKEND_DIR / "data" / "events.db", alias="DDOS_DB_PATH")
     maxmind_db_path: Path | None = Field(default=None, alias="MAXMIND_DB_PATH")
+    maxmind_account_id: int | None = Field(default=None, alias="MAXMIND_ACCOUNT_ID")
+    maxmind_license_key: str | None = Field(default=None, alias="MAXMIND_LICENSE_KEY")
     abuseipdb_key: str | None = Field(default=None, alias="ABUSEIPDB_KEY")
     greynoise_key: str | None = Field(default=None, alias="GREYNOISE_KEY")
     ws_allowed_origins: str = Field(

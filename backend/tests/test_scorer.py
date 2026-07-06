@@ -42,11 +42,10 @@ def test_heuristic_scorer_treats_benign_greynoise_as_low_confidence():
 
 
 def test_build_scorer_uses_heuristic_when_model_is_missing_and_fallback_enabled(tmp_path):
-    settings = Settings(
-        db_path=tmp_path / "events.db",
-        model_path=tmp_path / "missing.joblib",
-        enable_heuristic_scorer=True,
-    )
+    settings = Settings()
+    settings.db_path = tmp_path / "events.db"
+    settings.model_path = tmp_path / "missing.joblib"
+    settings.enable_heuristic_scorer = True
 
     scorer = build_scorer(settings)
 
@@ -54,11 +53,10 @@ def test_build_scorer_uses_heuristic_when_model_is_missing_and_fallback_enabled(
 
 
 def test_build_scorer_fails_when_model_is_missing_and_fallback_disabled(tmp_path):
-    settings = Settings(
-        db_path=tmp_path / "events.db",
-        model_path=tmp_path / "missing.joblib",
-        enable_heuristic_scorer=False,
-    )
+    settings = Settings()
+    settings.db_path = tmp_path / "events.db"
+    settings.model_path = tmp_path / "missing.joblib"
+    settings.enable_heuristic_scorer = False
 
     try:
         build_scorer(settings)
@@ -78,11 +76,10 @@ def test_build_scorer_loads_model_and_feature_spec(tmp_path):
         json.dumps({"feature_names": list(DEFAULT_FEATURE_NAMES)}),
         encoding="utf-8",
     )
-    settings = Settings(
-        db_path=tmp_path / "events.db",
-        model_path=model_path,
-        enable_heuristic_scorer=False,
-    )
+    settings = Settings()
+    settings.db_path = tmp_path / "events.db"
+    settings.model_path = model_path
+    settings.enable_heuristic_scorer = False
 
     scorer = build_scorer(settings)
     score = scorer.score(CandidateEvent(source=SourceName.SYNTHETIC))

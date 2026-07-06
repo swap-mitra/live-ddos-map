@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 ScoreFn = Callable[[CandidateEvent], float]
 
 
-def normalize_candidates(
+async def normalize_candidates(
     candidates: Iterable[CandidateEvent],
     *,
     geo_locator: GeoLocator,
@@ -35,7 +35,7 @@ def normalize_candidates(
             continue
         seen_keys.add(dedupe_key)
 
-        enriched = _with_geo(candidate, geo_locator)
+        enriched = await _with_geo(candidate, geo_locator)
         if enriched.lat is None or enriched.lng is None:
             logger.debug("Skipping candidate without usable coordinates: %s", enriched.raw_source_id)
             continue
@@ -65,11 +65,11 @@ def normalize_candidates(
     return events
 
 
-def _with_geo(candidate: CandidateEvent, geo_locator: GeoLocator) -> CandidateEvent:
+async def _with_geo(candidate: CandidateEvent, geo_locator: GeoLocator) -> CandidateEvent:
     if candidate.lat is not None and candidate.lng is not None:
         return candidate
 
-    result = geo_locator.lookup_ip(candidate.ip)
+    result = await geo_locator.lookup_ip(candidate.ip)
     if not result:
         return candidate
 

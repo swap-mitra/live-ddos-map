@@ -10,11 +10,11 @@ from app.schemas import AttackType, EventCreate, SourceName
 
 @pytest.fixture
 def test_settings(tmp_path):
-    return Settings(
-        db_path=tmp_path / "test.db",
-        enable_scheduler=False,
-        maxmind_db_path=None,
-    )
+    settings = Settings()
+    settings.db_path = tmp_path / "test.db"
+    settings.enable_scheduler = False
+    settings.maxmind_db_path = None
+    return settings
 
 
 @pytest.fixture
@@ -24,7 +24,8 @@ def test_app(test_settings):
 
 @pytest.fixture
 def test_client(test_app):
-    return TestClient(test_app)
+    with TestClient(test_app) as client:
+        yield client
 
 
 async def test_websocket_sends_snapshot_on_connect(test_app, test_client):
@@ -75,7 +76,7 @@ async def test_websocket_broadcasts_new_events(test_app, test_client):
         stored = await repository.insert_events([event])
         await connection_manager.broadcast_events(stored)
         
-        data = websocket.receive_json(timeout=1)
+        data = websocket.receive_json()
         assert data["kind"] == "events"
         assert len(data["events"]) == 1
         assert data["events"][0]["ip"] == "198.51.100.1"

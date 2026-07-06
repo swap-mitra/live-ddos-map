@@ -47,7 +47,7 @@ class AttackPoller:
         candidates = await self._fetch_candidates()
         logger.info("Fetched %s candidate events", len(candidates))
 
-        events = normalize_candidates(
+        events = await normalize_candidates(
             candidates,
             geo_locator=self.geo_locator,
             score_candidate=self.scorer.score,

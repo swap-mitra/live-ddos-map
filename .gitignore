@@ -4,6 +4,8 @@
 *.db-wal
 __pycache__/
 .pytest_cache/
+.pytest_cache_local/
+.pytest_basetemp/
 .ruff_cache/
 .venv/
 venv/
@@ -28,3 +30,6 @@ frontend/out/
 htmlcov/
 dist/
 build/
+# Ignore all markdown documentation except README.md
+**/*.md
+!**/README.md

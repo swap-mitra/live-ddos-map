@@ -9,7 +9,9 @@ from app.main import create_app
 
 
 def test_snapshot_returns_inserted_events(tmp_path):
-    settings = Settings(db_path=tmp_path / "events.db", enable_scheduler=False)
+    settings = Settings()
+    settings.db_path = tmp_path / "events.db"
+    settings.enable_scheduler = False
     app = create_app(settings)
 
     with TestClient(app) as client:

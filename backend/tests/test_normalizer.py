@@ -5,7 +5,7 @@ from app.services.scorer import HeuristicScorer
 
 
 class StubGeoLocator:
-    def lookup_ip(self, ip):
+    async def lookup_ip(self, ip):
         if ip == "8.8.8.8":
             return GeoResult(
                 lat=37.386,
@@ -17,7 +17,7 @@ class StubGeoLocator:
         return None
 
 
-def test_normalizer_geolocates_scores_and_dedupes_candidates():
+async def test_normalizer_geolocates_scores_and_dedupes_candidates():
     scorer = HeuristicScorer()
     candidates = [
         CandidateEvent(
@@ -36,7 +36,7 @@ def test_normalizer_geolocates_scores_and_dedupes_candidates():
         ),
     ]
 
-    events = normalize_candidates(
+    events = await normalize_candidates(
         candidates,
         geo_locator=StubGeoLocator(),
         score_candidate=scorer.score,
@@ -49,8 +49,8 @@ def test_normalizer_geolocates_scores_and_dedupes_candidates():
     assert events[0].score == 0.8
 
 
-def test_normalizer_skips_candidates_without_coordinates():
-    events = normalize_candidates(
+async def test_normalizer_skips_candidates_without_coordinates():
+    events = await normalize_candidates(
         [
             CandidateEvent(
                 ip="192.0.2.1",
@@ -64,4 +64,3 @@ def test_normalizer_skips_candidates_without_coordinates():
     )
 
     assert events == []
-
