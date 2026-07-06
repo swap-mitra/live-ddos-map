@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useAttackStore } from "@/store/useAttackStore";
 import { getWebSocketURL, fetchSnapshot } from "@/lib/api";
-import type { WebSocketMessage } from "@/lib/types";
+import type { WebSocketMessage, AttackEvent } from "@/lib/types";
 
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000];
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -11,8 +11,18 @@ export function useAttackWebSocket() {
   const reconnectAttemptRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
+  const eventBufferRef = useRef<AttackEvent[]>([]);
+  const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const { hydrate, addEvents, setStatus } = useAttackStore();
+
+  const flushEvents = useCallback(() => {
+    if (eventBufferRef.current.length > 0) {
+      addEvents(eventBufferRef.current);
+      eventBufferRef.current = [];
+    }
+    batchTimeoutRef.current = null;
+  }, [addEvents]);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -37,7 +47,12 @@ export function useAttackWebSocket() {
           if (message.kind === "snapshot" && message.events) {
             hydrate(message.events);
           } else if (message.kind === "events" && message.events) {
-            addEvents(message.events);
+            eventBufferRef.current.push(...message.events);
+            if (!batchTimeoutRef.current) {
+              batchTimeoutRef.current = setTimeout(() => {
+                flushEvents();
+              }, 2000);
+            }
           }
         } catch (error) {
           console.error("Failed to parse WebSocket message:", error);
@@ -92,6 +107,9 @@ export function useAttackWebSocket() {
       mountedRef.current = false;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
       }
       if (wsRef.current) {
         wsRef.current.close();

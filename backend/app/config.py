@@ -36,6 +36,9 @@ class Settings(BaseSettings):
         alias="WS_ALLOWED_ORIGINS",
     )
     poll_interval_seconds: int = Field(default=60, ge=10, alias="POLL_INTERVAL_SECONDS")
+    ws_heartbeat_interval_seconds: int = Field(
+        default=30, ge=5, alias="WS_HEARTBEAT_INTERVAL_SECONDS"
+    )
     event_ttl_hours: int = Field(default=24, ge=1, alias="EVENT_TTL_HOURS")
     min_event_score: float = Field(default=0.5, ge=0.0, le=1.0, alias="MIN_EVENT_SCORE")
     model_path: Path = Field(

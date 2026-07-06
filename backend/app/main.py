@@ -49,6 +49,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scheduler = None
         if settings.enable_scheduler:
             scheduler = build_scheduler(poller, settings)
+            scheduler.add_job(
+                connection_manager.send_heartbeat,
+                trigger="interval",
+                seconds=settings.ws_heartbeat_interval_seconds,
+                id="websocket-heartbeat",
+                coalesce=True,
+                max_instances=1,
+            )
             scheduler.start()
 
         app.state.settings = settings
