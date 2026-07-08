@@ -41,6 +41,20 @@ class AttackPoller:
         self.geo_locator = geo_locator
         self.scorer = scorer
         self.broadcast = broadcast
+        self._ipsum_cache: list[dict[str, str | int]] = []
+
+    async def refresh_ipsum_cache(self, client: httpx.AsyncClient) -> None:
+        from app.services.fetch_ipsum import fetch_ipsum_raw
+        records = await fetch_ipsum_raw(client)
+        if records:
+            self._ipsum_cache = records
+            logger.info("IPsum cache refreshed; count=%s", len(records))
+
+    async def refresh_ipsum_cache_job(self) -> None:
+        logger.info("Running daily scheduled IPsum cache refresh")
+        timeout = httpx.Timeout(self.settings.source_timeout_seconds)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            await self.refresh_ipsum_cache(client)
 
     async def poll_once(self) -> list[StoredEvent]:
         logger.info("Starting attack poll cycle")
@@ -72,30 +86,51 @@ class AttackPoller:
     async def _fetch_candidates(self) -> list[CandidateEvent]:
         timeout = httpx.Timeout(self.settings.source_timeout_seconds)
         async with httpx.AsyncClient(timeout=timeout) as client:
-            cloudflare_events, abuse_events = await asyncio.gather(
-                _safe_fetch("cloudflare_radar", fetch_cloudflare_radar(client)),
-                _safe_fetch(
-                    "abuseipdb",
-                    fetch_abuseipdb_blacklist(
-                        client,
-                        api_key=self.settings.abuseipdb_key,
-                        limit=self.settings.abuseipdb_blacklist_limit,
-                    ),
+            from app.services.fetch_dshield import fetch_dshield_top_ips
+            from app.services.fetch_ipsum import parse_ipsum_candidates
+
+            cloudflare_task = _safe_fetch("cloudflare_radar", fetch_cloudflare_radar(client))
+            abuse_task = _safe_fetch(
+                "abuseipdb",
+                fetch_abuseipdb_blacklist(
+                    client,
+                    api_key=self.settings.abuseipdb_key,
+                    limit=self.settings.abuseipdb_blacklist_limit,
+                ),
+            )
+            dshield_task = _safe_fetch(
+                "dshield",
+                fetch_dshield_top_ips(
+                    client,
+                    limit=self.settings.abuseipdb_blacklist_limit,
                 ),
             )
 
-            abuse_ips = [event.ip for event in abuse_events if event.ip]
+            cloudflare_events, abuse_events, dshield_events = await asyncio.gather(
+                cloudflare_task,
+                abuse_task,
+                dshield_task,
+            )
+
+            ipsum_events = parse_ipsum_candidates(
+                self._ipsum_cache,
+                sample_size=15,
+            )
+
+            all_events = [*cloudflare_events, *abuse_events, *dshield_events, *ipsum_events]
+
+            candidate_ips = [event.ip for event in all_events if event.ip]
             greynoise_events = await _safe_fetch(
                 "greynoise",
                 fetch_greynoise_for_ips(
                     client,
                     api_key=self.settings.greynoise_key,
-                    ips=abuse_ips,
+                    ips=candidate_ips,
                     limit=self.settings.greynoise_lookup_limit,
                 ),
             )
 
-        return [*cloudflare_events, *abuse_events, *greynoise_events]
+        return [*all_events, *greynoise_events]
 
 
 async def _safe_fetch(name: str, awaitable: Awaitable[list[CandidateEvent]]) -> list[CandidateEvent]:
@@ -116,5 +151,14 @@ def build_scheduler(poller: AttackPoller, settings: Settings) -> AsyncIOSchedule
         coalesce=True,
         max_instances=1,
         next_run_time=datetime.now(timezone.utc),
+    )
+    # Refresh IPsum cache once every 24 hours
+    scheduler.add_job(
+        poller.refresh_ipsum_cache_job,
+        trigger="interval",
+        hours=24,
+        id="ipsum-cache-refresh",
+        coalesce=True,
+        max_instances=1,
     )
     return scheduler

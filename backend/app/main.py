@@ -46,6 +46,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             broadcast=connection_manager.broadcast_events,
         )
 
+        # Trigger background load of IPsum cache
+        import asyncio
+        async def load_ipsum_cache_async():
+            await asyncio.sleep(1.0) # brief delay to allow startup logs to settle
+            timeout = httpx.Timeout(settings.source_timeout_seconds)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                await poller.refresh_ipsum_cache(client)
+
+        asyncio.create_task(load_ipsum_cache_async())
+
         scheduler = None
         if settings.enable_scheduler:
             scheduler = build_scheduler(poller, settings)

@@ -26,6 +26,8 @@ class SourceName(StrEnum):
     CLOUDFLARE_RADAR = "cloudflare_radar"
     ABUSEIPDB = "abuseipdb"
     GREYNOISE = "greynoise"
+    DSHIELD = "dshield"
+    IPSUM = "ipsum"
     SYNTHETIC = "synthetic"
     COMBINED = "combined"
 

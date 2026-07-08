@@ -87,7 +87,7 @@ export default function StatusBar() {
                   &gt; Ingestion Engine
                 </h4>
                 <p className="text-zinc-500 leading-relaxed text-[11px]">
-                  Aggregates malicious traffic signals at 60-second intervals from Cloudflare Radar, AbuseIPDB, and GreyNoise.
+                  Aggregates malicious traffic signals at 60-second intervals from Cloudflare Radar, AbuseIPDB, GreyNoise, SANS DShield, and Stamparm's IPsum.
                 </p>
               </div>
 
