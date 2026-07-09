@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+import httpx
+
 from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
