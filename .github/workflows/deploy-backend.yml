@@ -76,49 +76,10 @@ jobs:
           echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
-  # ---------------------------------------------------------------
-  # OPTIONAL: Uncomment the section below once you choose a host.
-  # This is a template for deploying to any host that accepts a
-  # Docker image (Render, Railway, Fly.io, your own VPS, etc.)
-  # ---------------------------------------------------------------
-
-  # deploy:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   environment: production
-  #   steps:
-  #     # Option A: Render — trigger deploy hook
-  #     - name: Deploy to Render
-  #       run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
-  #
-  #     # Option B: Railway — trigger deploy
-  #     # - name: Deploy to Railway
-  #     #   run: |
-  #     #     npm install -g @railway/cli
-  #     #     railway up --service backend
-  #     #   env:
-  #     #     RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  #
-  #     # Option C: Fly.io
-  #     # - name: Deploy to Fly.io
-  #     #   uses: superfly/flyctl-actions/setup-flyctl@master
-  #     # - run: flyctl deploy --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-  #     #   env:
-  #     #     FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-  #
-  #     # Option D: Self-hosted VPS via SSH
-  #     # - name: Deploy to VPS
-  #     #   uses: appleboy/ssh-action@v1
-  #     #   with:
-  #     #     host: ${{ secrets.VPS_HOST }}
-  #     #     username: ${{ secrets.VPS_USER }}
-  #     #     key: ${{ secrets.VPS_SSH_KEY }}
-  #     #     script: |
-  #     #       docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-  #     #       docker stop ddos-backend || true
-  #     #       docker rm ddos-backend || true
-  #     #       docker run -d --name ddos-backend \
-  #     #         --env-file /opt/ddos-map/.env \
-  #     #         -v /opt/ddos-map/data:/data \
-  #     #         -p 8000:8000 \
-  #     #         ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy to Render
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

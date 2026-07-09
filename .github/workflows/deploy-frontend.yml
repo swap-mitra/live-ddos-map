@@ -39,9 +39,6 @@ jobs:
       - name: Build with Vercel
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: frontend
-        env:
-          NEXT_PUBLIC_API_URL: ${{ vars.BACKEND_URL }}
-          NEXT_PUBLIC_WS_URL: ${{ vars.BACKEND_WS_URL }}
 
       - name: Deploy to Vercel (Production)
         id: deploy
