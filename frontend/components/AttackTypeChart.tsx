@@ -46,7 +46,7 @@ export default function AttackTypeChart() {
         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-zinc-700" />
         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-zinc-700" />
         <h3 className="text-xs font-mono font-bold text-zinc-400 tracking-wider mb-3 uppercase">
-          // THREAT VECTOR BREAKDOWN
+          {"// THREAT VECTOR BREAKDOWN"}
         </h3>
         <p className="text-xs font-mono text-zinc-500">NO ACTIVE VECTOR SIGNALS</p>
       </div>
@@ -62,7 +62,7 @@ export default function AttackTypeChart() {
       <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-red-500/70" />
 
       <h3 className="text-xs font-mono font-bold text-red-500 tracking-wider mb-2 uppercase">
-        // THREAT VECTOR BREAKDOWN
+        {"// THREAT VECTOR BREAKDOWN"}
       </h3>
       
       <div className="h-44 relative">

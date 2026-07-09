@@ -39,7 +39,7 @@ export default function EventFeed() {
       <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-red-500/70" />
 
       <h3 className="text-xs font-mono font-bold text-red-500 tracking-wider mb-3 uppercase flex-shrink-0">
-        // LIVE MONITORING FEED
+        {"// LIVE MONITORING FEED"}
       </h3>
       
       {recentEvents.length === 0 ? (

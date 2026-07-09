@@ -78,7 +78,7 @@ export default function StatusBar() {
               [ ESC ]
             </button>
             <h3 className="text-sm font-mono font-bold tracking-widest border-b border-zinc-850 pb-3 mb-4 text-red-500 flex items-center gap-2 uppercase">
-              // THREAT MAP ARCHITECTURE
+              {"// THREAT MAP ARCHITECTURE"}
             </h3>
             
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1 font-mono text-xs">
@@ -87,7 +87,7 @@ export default function StatusBar() {
                   &gt; Ingestion Engine
                 </h4>
                 <p className="text-zinc-500 leading-relaxed text-[11px]">
-                  Aggregates malicious traffic signals at 60-second intervals from Cloudflare Radar, AbuseIPDB, GreyNoise, SANS DShield, and Stamparm's IPsum.
+                  {"Aggregates malicious traffic signals at 60-second intervals from Cloudflare Radar, AbuseIPDB, GreyNoise, SANS DShield, and Stamparm's IPsum."}
                 </p>
               </div>
 

@@ -39,7 +39,7 @@ export default function CountryLeaderboard() {
         <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-zinc-700" />
         <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-zinc-700" />
         <h3 className="text-xs font-mono font-bold text-zinc-400 tracking-wider mb-3 uppercase">
-          // GEOGRAPHIC LEADERBOARD
+          {"// GEOGRAPHIC LEADERBOARD"}
         </h3>
         <p className="text-xs font-mono text-zinc-500">NO INCIDENTS REGISTERED</p>
       </div>
@@ -57,7 +57,7 @@ export default function CountryLeaderboard() {
       <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-red-500/70" />
 
       <h3 className="text-xs font-mono font-bold text-red-500 tracking-wider mb-4 uppercase">
-        // GEOGRAPHIC LEADERBOARD
+        {"// GEOGRAPHIC LEADERBOARD"}
       </h3>
       <div className="space-y-3">
         {topCountries.map((country, index) => (
