@@ -78,6 +78,7 @@ jobs:
 
   deploy:
     needs: build-and-push
+    if: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
     runs-on: ubuntu-latest
     environment: production
     steps:

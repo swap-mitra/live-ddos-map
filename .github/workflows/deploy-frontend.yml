@@ -17,6 +17,7 @@ jobs:
 
   deploy:
     needs: ci
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     runs-on: ubuntu-latest
     environment: production
 
