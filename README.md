@@ -8,11 +8,11 @@ The project is built around one principle: threat intelligence should be observa
 
 Security operations teams require high-fidelity, real-time visibility into incoming threats. However, raw threat feeds are often noisy, distributed across multiple proprietary or public APIs, and lack consistent confidence estimation. 
 
-Live DDoS Map changes the ingestion and analysis model. Instead of presenting disjointed and raw IP lists, the system aggregates multiple open-source feeds (Cloudflare Radar, AbuseIPDB, and GreyNoise), geolocates candidate IPs offline using MaxMind GeoLite2, and applies a Gradient Boosting Classifier to score and filter out low-confidence signals before broadcasting the results to an interactive 3D WebGL globe.
+Live DDoS Map changes the ingestion and analysis model. Instead of presenting disjointed and raw IP lists, the system aggregates multiple open-source feeds (Cloudflare Radar, AbuseIPDB, GreyNoise, SANS DShield, and Stamparm's IPsum), geolocates candidate IPs offline using MaxMind GeoLite2, and applies a Gradient Boosting Classifier to score and filter out low-confidence signals before broadcasting the results to an interactive 3D WebGL globe.
 
 This gives the system three practical security properties:
 
-- **Aggregated Intelligence**: Combines global telemetry (Cloudflare Radar) with IP reputation (AbuseIPDB) and honeypot/scanner activity (GreyNoise).
+- **Aggregated Intelligence**: Combines global telemetry (Cloudflare Radar) with IP reputation (AbuseIPDB), honeypot/scanner activity (GreyNoise), and top threat lists (SANS DShield, IPsum).
 - **ML Confidence Scoring**: A machine learning model filters out low-confidence events before they reach the operator.
 - **Low-Latency Streaming**: An active WebSocket connection pushes events and snapshot updates directly to the interactive 3D dashboard.
 
@@ -23,6 +23,8 @@ flowchart LR
   abuse["AbuseIPDB API"]
   cloudflare["Cloudflare Radar API"]
   greynoise["GreyNoise API"]
+  dshield["SANS DShield API"]
+  ipsum["IPsum Threat Feed"]
   poller["AttackPoller Scheduler"]
   normalizer["Normalizer & Geo Enricher"]
   ml["ML Confidence Scorer"]
@@ -33,6 +35,8 @@ flowchart LR
   cloudflare --> poller
   abuse --> poller
   greynoise --> poller
+  dshield --> poller
+  ipsum --> poller
   poller --> normalizer
   normalizer --> ml
   ml -->|confidence >= threshold| db
@@ -46,7 +50,7 @@ The core backend is designed to be lightweight, single-process, and asynchronous
 
 ```mermaid
 sequenceDiagram
-  participant Sources as Threat Sources (CF, AbuseIPDB, GreyNoise)
+  participant Sources as Threat Sources (CF, AbuseIPDB, GreyNoise, DShield, IPsum)
   participant Poller as AttackPoller
   participant Enricher as Normalizer & Geo (MaxMind)
   participant ML as ML Scorer
@@ -90,7 +94,7 @@ Key roles & components:
 - `config` ([backend/app/config.py](file:///C:/projects/live-ddos-map/backend/app/config.py)): Handles environment variable definitions and defaults.
 
 Core services:
-- `fetchers`: fetch raw signals from [Cloudflare Radar](file:///C:/projects/live-ddos-map/backend/app/services/fetch_cloudflare.py), [AbuseIPDB](file:///C:/projects/live-ddos-map/backend/app/services/fetch_abuseipdb.py), and [GreyNoise](file:///C:/projects/live-ddos-map/backend/app/services/fetch_greynoise.py).
+- `fetchers`: fetch raw signals from [Cloudflare Radar](file:///C:/projects/live-ddos-map/backend/app/services/fetch_cloudflare.py), [AbuseIPDB](file:///C:/projects/live-ddos-map/backend/app/services/fetch_abuseipdb.py), [GreyNoise](file:///C:/projects/live-ddos-map/backend/app/services/fetch_greynoise.py), [SANS DShield](file:///C:/projects/live-ddos-map/backend/app/services/fetch_dshield.py), and [IPsum](file:///C:/projects/live-ddos-map/backend/app/services/fetch_ipsum.py).
 - `normalizer` ([backend/app/services/normalizer.py](file:///C:/projects/live-ddos-map/backend/app/services/normalizer.py)): normalizes raw payloads to a standard schema.
 - `geolocation` ([backend/app/services/geo.py](file:///C:/projects/live-ddos-map/backend/app/services/geo.py)): queries the MaxMind offline GeoLite2 database.
 - `features` ([backend/app/services/features.py](file:///C:/projects/live-ddos-map/backend/app/services/features.py)): extracts model features from candidate events.
@@ -104,6 +108,8 @@ flowchart TB
     cf["Cloudflare Radar"]
     abuse["AbuseIPDB"]
     gn["GreyNoise"]
+    ds["SANS DShield"]
+    ip["IPsum"]
   end
 
   subgraph Processing["Processing & Scoring Layer"]
@@ -125,6 +131,8 @@ flowchart TB
   cf --> geo
   abuse --> geo
   gn --> geo
+  ds --> geo
+  ip --> geo
   geo --> ml
   ml --> sqlite
   sqlite --> fastapi
@@ -148,7 +156,7 @@ Important scripts:
 ## Features
 
 - Real-Time 3D WebGL Globe visualization using COBE
-- Multi-source intelligence polling (AbuseIPDB, GreyNoise, Cloudflare Radar)
+- Multi-source intelligence polling (AbuseIPDB, GreyNoise, Cloudflare Radar, SANS DShield, and Stamparm's IPsum)
 - Machine Learning (Gradient Boosting Classifier) confidence estimation
 - Offline city-level IP geolocation using MaxMind GeoLite2
 - SQLite database persistent storage with a rolling 24-hour retention window (automatic pruning)
@@ -215,15 +223,28 @@ The frontend will be available locally at `http://localhost:3000`.
 
 ### Feature Engineering
 
-The confidence scorer translates candidates to feature vectors using:
-1. **AbuseIPDB Confidence Score** (0-100)
-2. **GreyNoise Classification** (malicious=1, benign=0, unknown=0.5)
-3. **Source Agreement Count** (1-3 sources)
-4. **Cloudflare DDoS Trend Intensity** (0-1)
-5. **ASN Reputation Score** (heuristic-based)
-6. **IP Routability** (public=1, private/reserved=0)
-7. **Event Freshness** (minutes since observation)
-8. **Attack Type Hint** (one-hot encoded)
+The confidence scorer translates candidate events into 21-dimensional numeric feature vectors:
+1. **source_confidence**: Source-reported/inferred adapter confidence score (0.0 to 1.0)
+2. **abuse_confidence_score**: Normalized AbuseIPDB confidence (0.0 to 1.0)
+3. **greynoise_malicious**: Binary flag for GreyNoise malicious classification
+4. **greynoise_suspicious**: Binary flag for GreyNoise suspicious classification
+5. **greynoise_benign**: Binary flag for GreyNoise benign classification
+6. **greynoise_noise**: Binary flag for GreyNoise internet background noise
+7. **greynoise_riot**: Binary flag for GreyNoise common business services (RIOT)
+8. **source_count**: Number of unique intelligence sources reporting the same event (1 to 5)
+9. **cloudflare_ddos_trend**: Binary flag indicating active Cloudflare Radar DDoS trend
+10. **cloudflare_latest_value_log**: Log-scaled Cloudflare Radar trend bucket value
+11. **has_ip**: Binary flag indicating if candidate has an IP address
+12. **has_asn**: Binary flag indicating presence of ASN metadata
+13. **has_country**: Binary flag indicating presence of country metadata
+14. **type_volumetric**: One-hot flag for Volumetric attack type hint
+15. **type_amplification**: One-hot flag for Amplification attack type hint
+16. **type_application**: One-hot flag for Application-layer attack type hint
+17. **type_scanner**: One-hot flag for Scanner/reconnaissance attack type hint
+18. **source_abuseipdb**: One-hot flag indicating AbuseIPDB origin
+19. **source_greynoise**: One-hot flag indicating GreyNoise origin
+20. **source_cloudflare_radar**: One-hot flag indicating Cloudflare Radar origin
+21. **event_age_minutes**: Freshness in minutes (0 to 1440, capped at 24 hours)
 
 Feature mappings and preparation are defined in [backend/app/services/features.py](file:///C:/projects/live-ddos-map/backend/app/services/features.py).
 

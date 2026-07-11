@@ -189,7 +189,6 @@ WebGL is required for the globe visualization.
 
 ## Known Limitations
 
-- Globe rotation animation uses basic approach (future: integrate with COBE's onRender API when typing is available)
 - No arc visualization between source and target coordinates (markers only)
 - Maximum 100 markers displayed on globe for performance
 
