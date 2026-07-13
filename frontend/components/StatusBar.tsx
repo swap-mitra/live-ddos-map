@@ -1,12 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAttackStore } from "@/store/useAttackStore";
 
 export default function StatusBar() {
   const status = useAttackStore((state) => state.status);
   const events = useAttackStore((state) => state.events);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen]);
 
   const statusColors = {
     connecting: "bg-yellow-500 shadow-[0_0_8px_#eab308]",
@@ -55,10 +72,13 @@ export default function StatusBar() {
         <div className="text-[10px] font-mono tracking-widest text-zinc-500 select-none uppercase font-bold">CYBER THREAT MAP v0.1</div>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && mounted && createPortal(
         <div 
           className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4"
           onClick={() => setIsModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="system-info-title"
         >
           <div 
             className="bg-zinc-950/90 border border-zinc-800 rounded-lg max-w-lg w-full p-6 text-zinc-100 shadow-[0_0_30px_rgba(239,68,68,0.15)] relative"
@@ -77,7 +97,7 @@ export default function StatusBar() {
             >
               [ ESC ]
             </button>
-            <h3 className="text-sm font-mono font-bold tracking-widest border-b border-zinc-850 pb-3 mb-4 text-red-500 flex items-center gap-2 uppercase">
+            <h3 id="system-info-title" className="text-sm font-mono font-bold tracking-widest border-b border-zinc-850 pb-3 mb-4 text-red-500 flex items-center gap-2 uppercase">
               {"// THREAT MAP ARCHITECTURE"}
             </h3>
             
@@ -128,7 +148,8 @@ export default function StatusBar() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
