@@ -5,6 +5,7 @@ import type { WebSocketMessage, AttackEvent } from "@/lib/types";
 
 const RECONNECT_DELAYS = [1000, 2000, 5000, 10000, 30000];
 const MAX_RECONNECT_ATTEMPTS = 5;
+const FALLBACK_RETRY_INTERVAL_MS = 30000;
 
 export function useAttackWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
@@ -13,6 +14,7 @@ export function useAttackWebSocket() {
   const mountedRef = useRef(true);
   const eventBufferRef = useRef<AttackEvent[]>([]);
   const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   const { hydrate, addEvents, setStatus } = useAttackStore();
 
@@ -23,6 +25,23 @@ export function useAttackWebSocket() {
     }
     batchTimeoutRef.current = null;
   }, [addEvents]);
+
+  const fallbackToSnapshot = useCallback(async () => {
+    try {
+      const data = await fetchSnapshot();
+      if (mountedRef.current) hydrate(data.events);
+    } catch (error) {
+      console.error("Failed to fetch snapshot fallback:", error);
+    }
+    if (!mountedRef.current) return;
+    setStatus("closed");
+    // Don't give up permanently — keep retrying the live connection so the
+    // dashboard recovers on its own once the backend/network comes back.
+    reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectAttemptRef.current = 0;
+      connectRef.current();
+    }, FALLBACK_RETRY_INTERVAL_MS);
+  }, [hydrate, setStatus]);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -87,17 +106,11 @@ export function useAttackWebSocket() {
       setStatus("error");
       fallbackToSnapshot();
     }
-  }, [hydrate, addEvents, setStatus]);
+  }, [setStatus, flushEvents, fallbackToSnapshot]);
 
-  const fallbackToSnapshot = useCallback(async () => {
-    try {
-      const data = await fetchSnapshot();
-      hydrate(data.events);
-      setStatus("closed");
-    } catch (error) {
-      console.error("Failed to fetch snapshot fallback:", error);
-    }
-  }, [hydrate, setStatus]);
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     mountedRef.current = true;

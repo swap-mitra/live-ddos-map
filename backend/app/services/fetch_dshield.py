@@ -35,8 +35,14 @@ async def fetch_dshield_top_ips(
         logger.warning("Failed to parse DShield JSON: %s; skipping", exc)
         return []
 
-    top_ips = payload.get("topips", {})
-    ip_records = top_ips.get("ipaddress", [])
+    # The live API returns a bare JSON array of records. Older/documented
+    # examples show a {"topips": {"ipaddress": [...]}} wrapper, so accept
+    # both shapes rather than assuming one.
+    if isinstance(payload, list):
+        ip_records = payload
+    else:
+        top_ips = payload.get("topips", {})
+        ip_records = top_ips.get("ipaddress", [])
 
     # Handle single item returned as dict instead of list
     if isinstance(ip_records, dict):

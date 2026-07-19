@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     maxmind_license_key: str | None = Field(default=None, alias="MAXMIND_LICENSE_KEY")
     abuseipdb_key: str | None = Field(default=None, alias="ABUSEIPDB_KEY")
     greynoise_key: str | None = Field(default=None, alias="GREYNOISE_KEY")
+    cloudflare_api_token: str | None = Field(default=None, alias="CLOUDFLARE_API_TOKEN")
     ws_allowed_origins: str = Field(
         default="http://localhost:3000",
         alias="WS_ALLOWED_ORIGINS",

@@ -48,6 +48,32 @@ async def test_fetch_dshield_top_ips_success():
 
 
 @pytest.mark.asyncio
+async def test_fetch_dshield_top_ips_handles_bare_list_response():
+    # The live isc.sans.edu API returns a bare JSON array, not the
+    # {"topips": {"ipaddress": [...]}} wrapper shown in some docs.
+    mock_response = [
+        {"rank": 1, "source": "8.8.8.8", "reports": 1000, "targets": 50},
+    ]
+
+    mock_resp = MagicMock(spec=httpx.Response)
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = mock_response
+
+    client = MagicMock(spec=httpx.AsyncClient)
+    client.get = AsyncMock(return_value=mock_resp)
+
+    events = await fetch_dshield_top_ips(client)
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.ip == "8.8.8.8"
+    assert event.source == SourceName.DSHIELD
+    assert event.features["dshield_rank"] == 1
+    assert event.features["dshield_reports"] == 1000
+    assert event.features["dshield_targets"] == 50
+
+
+@pytest.mark.asyncio
 async def test_fetch_ipsum_raw_success():
     mock_text = (
         "# Some comments\n"

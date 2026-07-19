@@ -24,16 +24,24 @@ COUNTRY_CENTROIDS: dict[str, tuple[float, float, str]] = {
 }
 
 
-async def fetch_cloudflare_radar(client: httpx.AsyncClient) -> list[CandidateEvent]:
+async def fetch_cloudflare_radar(
+    client: httpx.AsyncClient, *, api_token: str | None = None
+) -> list[CandidateEvent]:
     """Fetch aggregate network-layer DDoS trends from Cloudflare Radar.
 
     Radar data is trend-oriented, so these events may not have source IPs.
+    Requires a Cloudflare API token (Radar reads are not available anonymously).
     """
+
+    if not api_token:
+        logger.info("Skipping Cloudflare Radar fetch because CLOUDFLARE_API_TOKEN is not set")
+        return []
 
     try:
         response = await client.get(
             LAYER3_TIMESERIES_URL,
             params={"dateRange": "1h", "name": "ddos"},
+            headers={"Authorization": f"Bearer {api_token}"},
         )
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:

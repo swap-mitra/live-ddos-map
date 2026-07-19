@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import AsyncIterator, Iterable
 
 import aiosqlite
 
@@ -50,9 +51,18 @@ class EventRepository:
 
     async def initialize(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        async with aiosqlite.connect(self.db_path) as db:
+        async with self._connect() as db:
+            # WAL lets the poller write while snapshot/websocket reads happen
+            # concurrently instead of blocking on SQLite's default rollback journal.
+            await db.execute("PRAGMA journal_mode=WAL")
             await db.executescript(SCHEMA_SQL)
             await db.commit()
+
+    @asynccontextmanager
+    async def _connect(self) -> AsyncIterator[aiosqlite.Connection]:
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("PRAGMA busy_timeout=5000")
+            yield db
 
     async def insert_events(self, events: Iterable[EventCreate]) -> list[StoredEvent]:
         inserted: list[StoredEvent] = []
@@ -60,7 +70,7 @@ class EventRepository:
         if not event_list:
             return inserted
 
-        async with aiosqlite.connect(self.db_path) as db:
+        async with self._connect() as db:
             for event in event_list:
                 cursor = await db.execute(
                     """
@@ -91,7 +101,7 @@ class EventRepository:
 
     async def list_recent_events(self, *, limit: int = 200) -> list[StoredEvent]:
         safe_limit = min(max(limit, 0), 500)
-        async with aiosqlite.connect(self.db_path) as db:
+        async with self._connect() as db:
             db.row_factory = aiosqlite.Row
             cursor = await db.execute(
                 """
@@ -106,7 +116,7 @@ class EventRepository:
         return [self._row_to_event(row) for row in rows]
 
     async def purge_older_than(self, cutoff: datetime) -> int:
-        async with aiosqlite.connect(self.db_path) as db:
+        async with self._connect() as db:
             cursor = await db.execute("DELETE FROM events WHERE ts < ?", (utc_iso(cutoff),))
             await db.commit()
             return cursor.rowcount

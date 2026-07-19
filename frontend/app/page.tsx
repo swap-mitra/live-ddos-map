@@ -40,8 +40,8 @@ export default function Home() {
         <AttackTypeChart />
       </div>
 
-      {/* 5. Floating Right Panel: Live Monitoring Logs */}
-      <div className="absolute right-4 top-20 bottom-4 w-80 lg:w-96 flex flex-col z-20 overflow-y-auto pointer-events-auto pl-2 py-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+      {/* 5. Floating Right Panel: Live Monitoring Logs (Hidden on small screens) */}
+      <div className="absolute right-4 top-20 bottom-4 w-80 lg:w-96 flex-col z-20 overflow-y-auto pointer-events-auto pl-2 py-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent hidden md:flex">
         <div className="flex-1 flex flex-col h-full">
           <EventFeed />
         </div>

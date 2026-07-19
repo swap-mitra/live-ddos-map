@@ -63,6 +63,11 @@ export default function GlobeView() {
     return list;
   }, [events]);
 
+  const markersRef = useRef(markers);
+  useEffect(() => {
+    markersRef.current = markers;
+  }, [markers]);
+
   const initGlobe = useCallback(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
@@ -95,11 +100,15 @@ export default function GlobeView() {
       baseColor: [0.3, 0.3, 0.3],
       markerColor: [0.9, 0.3, 0.3],
       glowColor: [0.08, 0.08, 0.15],
-      markers,
+      markers: markersRef.current,
       onRender: (state: Record<string, unknown>) => {
         // Apply interactive rotation + auto rotation
         state.phi = phiRef.current + pointerInteractionMovement.current;
         phiRef.current += 0.003;
+
+        // Read markers from the ref each frame instead of recreating the globe,
+        // so live event updates don't tear down and rebuild the WebGL context.
+        state.markers = markersRef.current;
 
         // Make responsive
         if (containerRef.current) {
@@ -111,7 +120,7 @@ export default function GlobeView() {
         }
       },
     });
-  }, [markers]);
+  }, []);
 
   // Mouse/Touch Drag Handlers for Rotation
   const handlePointerDown = useCallback(

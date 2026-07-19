@@ -21,7 +21,9 @@ async def collect(output: Path, limit: int) -> int:
     timeout = httpx.Timeout(settings.source_timeout_seconds)
 
     async with httpx.AsyncClient(timeout=timeout) as client:
-        cloudflare_events = await fetch_cloudflare_radar(client)
+        cloudflare_events = await fetch_cloudflare_radar(
+            client, api_token=settings.cloudflare_api_token
+        )
         abuse_events = await fetch_abuseipdb_blacklist(
             client,
             api_key=settings.abuseipdb_key,

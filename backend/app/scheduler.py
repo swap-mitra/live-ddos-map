@@ -89,7 +89,10 @@ class AttackPoller:
             from app.services.fetch_dshield import fetch_dshield_top_ips
             from app.services.fetch_ipsum import parse_ipsum_candidates
 
-            cloudflare_task = _safe_fetch("cloudflare_radar", fetch_cloudflare_radar(client))
+            cloudflare_task = _safe_fetch(
+                "cloudflare_radar",
+                fetch_cloudflare_radar(client, api_token=self.settings.cloudflare_api_token),
+            )
             abuse_task = _safe_fetch(
                 "abuseipdb",
                 fetch_abuseipdb_blacklist(
