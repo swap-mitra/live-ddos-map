@@ -329,15 +329,17 @@ Maintains a WebSocket channel for streaming live events.
 
 ## Public Deployment
 
-### Backend Deployment (Railway)
-1. Link your GitHub repository to a new Railway service.
-2. Mount a persistent volume at `/data` for the SQLite and MaxMind databases.
-3. Configure environment variables in Railway matching `.env.example`.
-4. Ensure the start command is configured: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+Both the backend and frontend are connected directly to this GitHub repository on Render and Vercel respectively. Each push to `main` triggers its own build and deploy automatically — there is no separate deploy step in GitHub Actions; CI (`.github/workflows/ci.yml`) only runs tests and a build check.
+
+### Backend Deployment (Render)
+1. Create a new Web Service on Render, connect it to this GitHub repository, and set the root directory to `backend` so Render builds `backend/Dockerfile`.
+2. Add a persistent disk mounted at `/data` for the SQLite database (and the MaxMind `.mmdb` file if using local-database geolocation mode instead of the web service mode).
+3. Configure environment variables in the Render dashboard matching `.env.example`, including `WS_ALLOWED_ORIGINS` set to the deployed Vercel domain.
+4. Render builds the container and runs `uvicorn app.main:app --host 0.0.0.0 --port $PORT` automatically (see `backend/Dockerfile`); no manual start command configuration is required.
 
 ### Frontend Deployment (Vercel)
-1. Add the project to Vercel and set the root directory to `frontend`.
-2. Configure `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` to point to the Railway instance.
+1. Import the project into Vercel and set the root directory to `frontend`.
+2. Configure `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_WS_URL` to point to the deployed Render backend (e.g. `https://your-service.onrender.com` and `wss://your-service.onrender.com/ws/attacks`).
 
 ## Security & Limitations
 

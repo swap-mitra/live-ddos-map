@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     """Runtime settings loaded from environment variables.
 
     Defaults are development-friendly. Production should set every secret and
-    path explicitly in Railway.
+    path explicitly in Render.
     """
 
     model_config = SettingsConfigDict(

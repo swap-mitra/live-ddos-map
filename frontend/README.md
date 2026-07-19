@@ -60,8 +60,8 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/attacks
 For production deployment on Vercel, set:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app
-NEXT_PUBLIC_WS_URL=wss://your-backend-url.railway.app/ws/attacks
+NEXT_PUBLIC_API_URL=https://your-backend-url.onrender.com
+NEXT_PUBLIC_WS_URL=wss://your-backend-url.onrender.com/ws/attacks
 ```
 
 ## Development
