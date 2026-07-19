@@ -5,7 +5,6 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-  workflow_call:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -47,8 +46,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           cd backend
-          pip install pytest-cov
-          pytest -v --tb=short --cov=app --cov-report=xml --cov-report=term
+          pytest -v --tb=short --cov=app --cov-report=term-missing
         env:
           ENABLE_SCHEDULER: "false"
           ENABLE_HEURISTIC_SCORER: "true"
