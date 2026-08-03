@@ -1,6 +1,6 @@
 # Live DDoS Map
 
-Live DDoS Map is a real-time DDoS attack visualization dashboard that displays high-risk internet attack signals as animated markers on a 3D WebGL globe. The project demonstrates a complete data pipeline combining threat intelligence aggregation, geolocation enrichment, ML confidence scoring, WebSocket streaming, and interactive web visualization.
+Live DDoS Map is a real-time DDoS attack visualization dashboard that displays high-risk internet attack signals as animated arcs on a 3D WebGL globe. The project demonstrates a complete data pipeline combining threat intelligence aggregation, geolocation enrichment, ML confidence scoring, WebSocket streaming, and interactive web visualization.
 
 The project is built around one principle: threat intelligence should be observable, scored, and visualized in real time.
 
@@ -69,7 +69,7 @@ sequenceDiagram
       Poller->>DB: Save accepted event (TTL 24h)
       Poller->>WS: Broadcast accepted event
       WS->>UI: Stream new event over WebSocket
-      UI->>UI: Render animated marker on 3D Globe
+      UI->>UI: Render animated arc on 3D Globe
     else Score < MIN_EVENT_SCORE
       Poller->>Poller: Discard low-confidence event
     end
@@ -125,7 +125,7 @@ flowchart TB
 
   subgraph Visualization["Client Visualization Layer"]
     ui["Next.js App"]
-    cobe["WebGL 3D Globe (COBE)"]
+    globe["WebGL 3D Globe (react-globe.gl / three.js)"]
   end
 
   cf --> geo
@@ -138,7 +138,7 @@ flowchart TB
   sqlite --> fastapi
   fastapi --> ws
   ws --> ui
-  ui --> cobe
+  ui --> globe
 ```
 
 The system ingests raw untrusted threat intelligence data. Geolocation, ML feature extraction, and ML scoring act as security boundaries to prevent noise and bad telemetry from reaching the persistence layer (SQLite) and active visualization dashboards.
@@ -155,7 +155,7 @@ Important scripts:
 
 ## Features
 
-- Real-Time 3D WebGL Globe visualization using COBE
+- Real-Time 3D WebGL Globe visualization using react-globe.gl / three.js, with animated attack arcs, impact rings, and zoom/rotate camera controls
 - Multi-source intelligence polling (AbuseIPDB, GreyNoise, Cloudflare Radar, SANS DShield, and Stamparm's IPsum)
 - Machine Learning (Gradient Boosting Classifier) confidence estimation
 - Offline city-level IP geolocation using MaxMind GeoLite2
@@ -364,3 +364,9 @@ Run a manual socket subscription validation:
 ```powershell
 python scripts/test_websocket_manual.py
 ```
+
+## Attribution
+
+Globe textures (`frontend/public/textures/`) are the [three-globe](https://github.com/vasturiano/three-globe) example
+imagery, derived from NASA Blue Marble / Black Marble. `earth-night.jpg` is the Black Marble night-lights composite;
+`night-sky.png` is the starfield backdrop.
