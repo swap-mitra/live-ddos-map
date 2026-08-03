@@ -109,14 +109,37 @@ class HealthResponse(BaseModel):
     service: str
 
 
+#: Major datacenter metros. Attacks fan out across these instead of every arc
+#: converging on the single configured target, which reads as one dot on the globe.
+TARGET_POOL: tuple[tuple[float, float], ...] = (
+    (40.7128, -74.0060),  # New York
+    (51.5074, -0.1278),  # London
+    (50.1109, 8.6821),  # Frankfurt
+    (1.3521, 103.8198),  # Singapore
+    (35.6762, 139.6503),  # Tokyo
+    (-33.8688, 151.2093),  # Sydney
+    (52.3676, 4.9041),  # Amsterdam
+    (19.0760, 72.8777),  # Mumbai
+    (-23.5505, -46.6333),  # Sao Paulo
+)
+
+
+def target_for(event_id: int, *, target_lat: float, target_lng: float) -> tuple[float, float]:
+    """Pick this event's target. Deterministic by id, so an event keeps the same
+    destination across snapshot fetches and WebSocket pushes."""
+    pool = ((target_lat, target_lng), *TARGET_POOL)
+    return pool[event_id % len(pool)]
+
+
 def event_to_api(event: StoredEvent, *, target_lat: float, target_lng: float) -> AttackEvent:
+    end_lat, end_lng = target_for(event.id, target_lat=target_lat, target_lng=target_lng)
     return AttackEvent(
         id=event.id,
         ip=event.ip,
         start_lat=event.lat,
         start_lng=event.lng,
-        end_lat=target_lat,
-        end_lng=target_lng,
+        end_lat=end_lat,
+        end_lng=end_lng,
         country=event.country,
         country_code=event.country_code,
         asn=event.asn,

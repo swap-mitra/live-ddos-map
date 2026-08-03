@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 from app.config import Settings
-from app.schemas import AttackType, EventCreate, SourceName
+from app.schemas import TARGET_POOL, AttackType, EventCreate, SourceName, target_for
 from app.main import create_app
 
 
@@ -43,5 +43,18 @@ def test_snapshot_returns_inserted_events(tmp_path):
     assert len(payload["events"]) == 1
     assert payload["events"][0]["ip"] == "8.8.8.8"
     assert payload["events"][0]["startLat"] == 37.386
-    assert payload["events"][0]["endLat"] == settings.target_lat
+
+    event = payload["events"][0]
+    pool = ((settings.target_lat, settings.target_lng), *TARGET_POOL)
+    assert (event["endLat"], event["endLng"]) in pool
+
+
+def test_targets_fan_out_across_the_pool():
+    """Arcs must not all converge on one point — consecutive ids get different targets."""
+    kwargs = {"target_lat": 37.7749, "target_lng": -122.4194}
+    targets = [target_for(event_id, **kwargs) for event_id in range(len(TARGET_POOL) + 1)]
+
+    assert len(set(targets)) == len(targets)
+    assert targets[0] == (37.7749, -122.4194)  # the configured target still leads
+    assert target_for(0, **kwargs) == target_for(len(targets), **kwargs)  # stable by id
 
