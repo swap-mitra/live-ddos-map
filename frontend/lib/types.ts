@@ -14,6 +14,17 @@ export interface AttackEvent {
   ts: string;
 }
 
+export type AttackType = AttackEvent["type"];
+
+/** Shared by the globe arcs/points and the threat-vector chart legend. */
+export const TYPE_COLORS: Record<AttackType, string> = {
+  volumetric: "#ef4444", // Neon Red
+  amplification: "#f59e0b", // Neon Orange/Amber
+  application: "#a855f7", // Neon Purple
+  scanner: "#06b6d4", // Neon Cyan
+  unknown: "#71717a", // Zinc Gray
+};
+
 export interface SnapshotResponse {
   events: AttackEvent[];
 }

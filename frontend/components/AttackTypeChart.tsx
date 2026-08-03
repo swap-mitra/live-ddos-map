@@ -3,14 +3,7 @@
 import { useAttackStore } from "@/store/useAttackStore";
 import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-
-const TYPE_COLORS: Record<string, string> = {
-  volumetric: "#ef4444", // Neon Red
-  amplification: "#f59e0b", // Neon Orange/Amber
-  application: "#a855f7", // Neon Purple
-  scanner: "#06b6d4", // Neon Cyan
-  unknown: "#71717a", // Zinc Gray
-};
+import { TYPE_COLORS, type AttackType } from "@/lib/types";
 
 const TYPE_LABELS: Record<string, string> = {
   volumetric: "VOLUMETRIC ATTACK",
@@ -35,7 +28,7 @@ export default function AttackTypeChart() {
       .map(([type, count]) => ({
         name: TYPE_LABELS[type] || type,
         value: count,
-        color: TYPE_COLORS[type] || "#71717a",
+        color: TYPE_COLORS[type as AttackType] || TYPE_COLORS.unknown,
       }))
       .sort((a, b) => b.value - a.value);
   }, [events]);
