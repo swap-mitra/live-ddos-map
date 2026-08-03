@@ -1,190 +1,104 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
-import createGlobe from "cobe";
+import { useEffect, useRef, useState, useMemo } from "react";
+import Globe, { GlobeMethods } from "react-globe.gl";
 import { useAttackStore } from "@/store/useAttackStore";
+import { TYPE_COLORS, type AttackEvent } from "@/lib/types";
+
+const TARGET_COLOR = "#22c55e";
+
+// Arcs are the expensive layer; the store holds up to MAX_EVENTS (500).
+const MAX_ARCS = 60;
+const MAX_RINGS = 25;
+
+type Ring = { lat: number; lng: number };
+type Point = { lat: number; lng: number; type: AttackEvent["type"]; score: number };
 
 export default function GlobeView() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const events = useAttackStore((state) => state.events);
-  
-  const eventsRef = useRef(events);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const mounted = size.w > 0;
+
+  // react-globe.gl needs explicit pixel dimensions.
   useEffect(() => {
-    eventsRef.current = events;
-  }, [events]);
+    const container = containerRef.current;
+    if (!container) return;
 
-  const phiRef = useRef(0);
-  const globeInstanceRef = useRef<ReturnType<typeof createGlobe> | null>(null);
-  const pointerInteracting = useRef<number | null>(null);
-  const pointerInteractionMovement = useRef(0);
-
-  // Build markers from DDoS events (WebGL dots)
-  const markers = useMemo(() => {
-    const recentEvents = events.slice(-100);
-    
-    // Add both start and end locations to show dots for attackers and targets
-    const list: Array<{ location: [number, number]; size: number; color?: [number, number, number] }> = [];
-    const seen = new Set<string>();
-
-    recentEvents.forEach((event) => {
-      const startKey = `${event.startLat.toFixed(2)},${event.startLng.toFixed(2)}`;
-      if (!seen.has(startKey)) {
-        seen.add(startKey);
-        
-        // Colors corresponding to attack type (RGB normalized 0.0 - 1.0)
-        const typeColors: Record<string, [number, number, number]> = {
-          volumetric: [0.94, 0.27, 0.27], // Red
-          amplification: [0.96, 0.62, 0.04], // Orange
-          application: [0.66, 0.33, 0.97], // Purple
-          scanner: [0.02, 0.71, 0.84], // Cyan
-          unknown: [0.44, 0.44, 0.49], // Gray
-        };
-
-        list.push({
-          location: [event.startLat, event.startLng],
-          size: 0.025 + event.score * 0.045,
-          color: typeColors[event.type] || typeColors.unknown,
-        });
-      }
-
-      const endKey = `${event.endLat.toFixed(2)},${event.endLng.toFixed(2)}`;
-      if (!seen.has(endKey)) {
-        seen.add(endKey);
-        // Make the target (victim) dot a glowing neon green
-        list.push({
-          location: [event.endLat, event.endLng],
-          size: 0.04,
-          color: [0.13, 0.77, 0.37], // Glowing green
-        });
-      }
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize({ w: Math.round(width), h: Math.round(height) });
     });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
+  useEffect(() => {
+    const globe = globeRef.current;
+    if (!globe) return;
+
+    const controls = globe.controls();
+    controls.enableZoom = true;
+    controls.minDistance = 180;
+    controls.maxDistance = 500;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false; // panning just off-centres the globe
+    controls.rotateSpeed = 0.55;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.35;
+
+    // Hand rotation over to the user while they're dragging.
+    const pause = () => {
+      controls.autoRotate = false;
+    };
+    const resume = () => {
+      controls.autoRotate = true;
+    };
+    controls.addEventListener("start", pause);
+    controls.addEventListener("end", resume);
+
+    globe.pointOfView({ lat: 20, lng: 0, altitude: 2.2 });
+
+    return () => {
+      controls.removeEventListener("start", pause);
+      controls.removeEventListener("end", resume);
+    };
+  }, [mounted]); // controls() only exists once the globe has mounted
+
+  const arcs = useMemo(() => events.slice(-MAX_ARCS), [events]);
+
+  // Rings self-propagate on a repeat period, so old targets simply fall out of
+  // this window as new events arrive — no per-ring timers to manage.
+  const rings = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Ring[] = [];
+    events.slice(-MAX_RINGS).forEach((event) => {
+      const key = `${event.endLat},${event.endLng}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({ lat: event.endLat, lng: event.endLng });
+    });
     return list;
   }, [events]);
 
-  const markersRef = useRef(markers);
-  useEffect(() => {
-    markersRef.current = markers;
-  }, [markers]);
-
-  const initGlobe = useCallback(() => {
-    if (!canvasRef.current || !containerRef.current) return;
-
-    // Destroy previous instance
-    if (globeInstanceRef.current) {
-      globeInstanceRef.current.destroy();
-      globeInstanceRef.current = null;
-    }
-
-    const container = containerRef.current;
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
-    const size = Math.min(width, height);
-
-    if (size === 0) {
-      requestAnimationFrame(initGlobe);
-      return;
-    }
-
-    globeInstanceRef.current = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
-      width: size * 2,
-      height: size * 2,
-      phi: 0,
-      theta: 0.3,
-      dark: 1,
-      diffuse: 1.2,
-      mapSamples: 16000,
-      mapBrightness: 6,
-      baseColor: [0.3, 0.3, 0.3],
-      markerColor: [0.9, 0.3, 0.3],
-      glowColor: [0.08, 0.08, 0.15],
-      markers: markersRef.current,
-      onRender: (state: Record<string, unknown>) => {
-        // Apply interactive rotation + auto rotation
-        state.phi = phiRef.current + pointerInteractionMovement.current;
-        phiRef.current += 0.003;
-
-        // Read markers from the ref each frame instead of recreating the globe,
-        // so live event updates don't tear down and rebuild the WebGL context.
-        state.markers = markersRef.current;
-
-        // Make responsive
-        if (containerRef.current) {
-          const w = containerRef.current.offsetWidth;
-          const h = containerRef.current.offsetHeight;
-          const s = Math.min(w, h);
-          state.width = s * 2;
-          state.height = s * 2;
-        }
-      },
+  const points = useMemo(() => {
+    const seen = new Set<string>();
+    const list: Point[] = [];
+    events.slice(-MAX_ARCS).forEach((event) => {
+      const key = `${event.startLat.toFixed(2)},${event.startLng.toFixed(2)}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      list.push({
+        lat: event.startLat,
+        lng: event.startLng,
+        type: event.type,
+        score: event.score,
+      });
     });
-  }, []);
-
-  // Mouse/Touch Drag Handlers for Rotation
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent<HTMLCanvasElement>) => {
-      pointerInteracting.current =
-        e.clientX - pointerInteractionMovement.current;
-      if (canvasRef.current) {
-        canvasRef.current.style.cursor = "grabbing";
-      }
-    },
-    []
-  );
-
-  const handlePointerUp = useCallback(() => {
-    pointerInteracting.current = null;
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = "grab";
-    }
-  }, []);
-
-  const handlePointerOut = useCallback(() => {
-    pointerInteracting.current = null;
-    if (canvasRef.current) {
-      canvasRef.current.style.cursor = "grab";
-    }
-  }, []);
-
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement>) => {
-      if (pointerInteracting.current !== null) {
-        const delta = e.clientX - pointerInteracting.current;
-        pointerInteractionMovement.current = delta / 200;
-      }
-    },
-    []
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLCanvasElement>) => {
-      if (pointerInteracting.current !== null && e.touches[0]) {
-        const delta = e.touches[0].clientX - pointerInteracting.current;
-        pointerInteractionMovement.current = delta / 100;
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    initGlobe();
-
-    const handleResize = () => {
-      initGlobe();
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      if (globeInstanceRef.current) {
-        globeInstanceRef.current.destroy();
-        globeInstanceRef.current = null;
-      }
-    };
-  }, [initGlobe]);
+    return list;
+  }, [events]);
 
   return (
     <div
@@ -194,56 +108,56 @@ export default function GlobeView() {
         position: "relative",
         width: "100%",
         height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         overflow: "hidden",
+        cursor: "grab",
       }}
     >
-      {/* Radial gradient mask — Aceternity UI signature effect */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(circle at 50% 50%, transparent 30%, rgba(9, 9, 11, 0.6) 60%, rgba(9, 9, 11, 1) 80%)",
-          pointerEvents: "none",
-          zIndex: 10,
-        }}
-      />
-      {/* Bottom fade gradient */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: "40%",
-          background:
-            "linear-gradient(to top, rgba(9, 9, 11, 1) 0%, transparent 100%)",
-          pointerEvents: "none",
-          zIndex: 11,
-        }}
-      />
-      
-      {/* 3D WebGL Globe */}
-      <canvas
-        ref={canvasRef}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
-        onPointerOut={handlePointerOut}
-        onMouseMove={handleMouseMove}
-        onTouchMove={handleTouchMove}
-        style={{
-          width: "min(100vw, 100vh)",
-          height: "min(100vw, 100vh)",
-          maxWidth: "100%",
-          contain: "layout paint size",
-          cursor: "grab",
-          aspectRatio: "1",
-          opacity: 1,
-        }}
-      />
+      {mounted && (
+        <Globe
+          ref={globeRef}
+          width={size.w}
+          height={size.h}
+          backgroundColor="rgba(0,0,0,0)"
+          globeImageUrl="/textures/earth-night.jpg"
+          backgroundImageUrl="/textures/night-sky.png"
+          showAtmosphere={false}
+          rendererConfig={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+          }}
+          arcsData={arcs}
+          arcStartLat={(d) => (d as AttackEvent).startLat}
+          arcStartLng={(d) => (d as AttackEvent).startLng}
+          arcEndLat={(d) => (d as AttackEvent).endLat}
+          arcEndLng={(d) => (d as AttackEvent).endLng}
+          arcColor={(d: object) => [
+            TYPE_COLORS[(d as AttackEvent).type],
+            TARGET_COLOR,
+          ]}
+          arcStroke={(d) => 0.3 + (d as AttackEvent).score * 0.5}
+          arcAltitudeAutoScale={0.4}
+          arcDashLength={0.4}
+          arcDashGap={2}
+          arcDashInitialGap={(d) => ((d as AttackEvent).id % 20) / 10}
+          arcDashAnimateTime={2200}
+          // Default is 1000ms: with a WS batch landing every ~2s the whole arc
+          // set would re-animate its entry on each flush and visibly stutter.
+          arcsTransitionDuration={0}
+          ringsData={rings}
+          ringColor={() => (t: number) => `rgba(239, 68, 68, ${1 - t})`}
+          ringMaxRadius={4}
+          ringPropagationSpeed={2}
+          ringRepeatPeriod={900}
+          pointsData={points}
+          pointLat={(d) => (d as Point).lat}
+          pointLng={(d) => (d as Point).lng}
+          pointColor={(d) => TYPE_COLORS[(d as Point).type]}
+          pointAltitude={(d) => 0.01 + (d as Point).score * 0.06}
+          pointRadius={0.22}
+          pointsTransitionDuration={0}
+        />
+      )}
     </div>
   );
 }
