@@ -5,11 +5,13 @@ import Globe, { GlobeMethods } from "react-globe.gl";
 import { useAttackStore } from "@/store/useAttackStore";
 import { TYPE_COLORS, type AttackEvent } from "@/lib/types";
 
-const TARGET_COLOR = "#22c55e";
+// Kept as "r, g, b" so the pulse can fade them out through rgba().
+const TARGET_RGB = "34, 197, 94";
+const ORIGIN_RGB = "252, 165, 165";
 
 // The store holds up to MAX_EVENTS (500); only the tail is worth drawing.
 const MAX_POINTS = 100;
-const MAX_RINGS = 25;
+const MAX_TARGETS = 25;
 const MAX_ORIGIN_LABELS = 6;
 
 /** Names for backend/app/schemas.py TARGET_POOL, keyed to 3dp so float
@@ -29,9 +31,10 @@ const TARGET_NAMES: Record<string, string> = {
 
 const coordKey = (lat: number, lng: number) => `${lat.toFixed(3)},${lng.toFixed(3)}`;
 
-type Ring = { lat: number; lng: number };
+type Target = { lat: number; lng: number };
 type Point = { lat: number; lng: number; type: AttackEvent["type"]; score: number };
-type Label = { lat: number; lng: number; text: string; color: string; size: number };
+/** Doubles as the rings layer — every named location pulses in its own colour. */
+type Label = { lat: number; lng: number; text: string; rgb: string; size: number };
 
 export default function GlobeView() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -86,12 +89,11 @@ export default function GlobeView() {
     };
   }, [mounted]); // controls() only exists once the globe has mounted
 
-  // Rings self-propagate on a repeat period, so old targets simply fall out of
-  // this window as new events arrive — no per-ring timers to manage.
-  const rings = useMemo(() => {
+  // Old targets simply fall out of this window as new events arrive.
+  const targets = useMemo(() => {
     const seen = new Set<string>();
-    const list: Ring[] = [];
-    events.slice(-MAX_RINGS).forEach((event) => {
+    const list: Target[] = [];
+    events.slice(-MAX_TARGETS).forEach((event) => {
       const key = `${event.endLat},${event.endLng}`;
       if (seen.has(key)) return;
       seen.add(key);
@@ -120,11 +122,11 @@ export default function GlobeView() {
   // Named targets under attack, plus the countries sending the most traffic.
   // Origin names come straight off the wire — no lookup table to drift.
   const labels = useMemo(() => {
-    const list: Label[] = rings.map((ring) => ({
-      lat: ring.lat,
-      lng: ring.lng,
-      text: TARGET_NAMES[coordKey(ring.lat, ring.lng)] ?? "",
-      color: TARGET_COLOR,
+    const list: Label[] = targets.map((target) => ({
+      lat: target.lat,
+      lng: target.lng,
+      text: TARGET_NAMES[coordKey(target.lat, target.lng)] ?? "",
+      rgb: TARGET_RGB,
       size: 0.55,
     }));
 
@@ -145,11 +147,11 @@ export default function GlobeView() {
       .sort((a, b) => b[1].count - a[1].count)
       .slice(0, MAX_ORIGIN_LABELS)
       .forEach(([country, { lat, lng }]) => {
-        list.push({ lat, lng, text: country.toUpperCase(), color: "#fca5a5", size: 0.45 });
+        list.push({ lat, lng, text: country.toUpperCase(), rgb: ORIGIN_RGB, size: 0.45 });
       });
 
     return list.filter((label) => label.text);
-  }, [events, rings]);
+  }, [events, targets]);
 
   return (
     <div
@@ -177,17 +179,19 @@ export default function GlobeView() {
             alpha: true,
             powerPreference: "high-performance",
           }}
-          ringsData={rings}
-          ringColor={() => (t: number) => `rgba(239, 68, 68, ${1 - t})`}
-          ringMaxRadius={4}
-          ringPropagationSpeed={2}
-          ringRepeatPeriod={900}
+          // Same array as the labels: every named location gets the pulse.
+          ringsData={labels}
+          ringColor={(d: object) => (t: number) => `rgba(${(d as Label).rgb}, ${1 - t})`}
+          ringMaxRadius={3.5}
+          ringPropagationSpeed={1.6}
+          ringRepeatPeriod={1100}
           pointsData={points}
           pointLat={(d) => (d as Point).lat}
           pointLng={(d) => (d as Point).lng}
           pointColor={(d) => TYPE_COLORS[(d as Point).type]}
-          pointAltitude={(d) => 0.01 + (d as Point).score * 0.06}
-          pointRadius={0.22}
+          // Flat discs, not columns — score reads as size instead of height.
+          pointAltitude={0.001}
+          pointRadius={(d) => 0.18 + (d as Point).score * 0.14}
           // Default is 1000ms: with a WS batch landing every ~2s the whole set
           // would re-animate its entry on each flush and visibly stutter.
           pointsTransitionDuration={0}
@@ -195,7 +199,7 @@ export default function GlobeView() {
           labelLat={(d) => (d as Label).lat}
           labelLng={(d) => (d as Label).lng}
           labelText={(d) => (d as Label).text}
-          labelColor={(d) => (d as Label).color}
+          labelColor={(d) => `rgb(${(d as Label).rgb})`}
           labelSize={(d) => (d as Label).size}
           labelDotRadius={0.28}
           labelAltitude={0.012}
